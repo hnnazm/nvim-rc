@@ -25,6 +25,9 @@ set relativenumber
 
 set signcolumn=yes
 
+set winborder=rounded
+set completeopt+=noselect
+
 " Netrw settings
 let g:netrw_banner = 0
 let g:netrw_winsize = 30
@@ -39,7 +42,6 @@ let g:netrw_browsex_viewer = "open"
 let g:netrw_sort_by = "exten"
 let g:netrw_sort_direction = "normal"
 let g:netrw_sort_options = "i"
-let g:netrw_list_hide = netrw_gitignore#Hide()
 let g:netrw_list_hide = '\(^\|\s\s\)\zs\.\S\+'
 
 " Keymaps

@@ -1,3 +1,60 @@
+vim.lsp.enable({
+  "bashls",
+  "cssls",
+  "dockerls",
+  "gopls",
+  "html",
+  "intelephense",
+  "lua_ls",
+  "markdown_oxide",
+  "pylsp",
+  "tailwindcss",
+  "ts_ls",
+  "vimls",
+  "vue_ls",
+})
+
+vim.api.nvim_create_autocmd("LspAttach", {
+  callback = function(ev)
+    local client = vim.lsp.get_client_by_id(ev.data.client_id)
+    if client:supports_method("textDocument/completion") then
+      vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
+    end
+  end,
+})
+
+vim.api.nvim_create_autocmd("CursorHold", {
+  callback = function()
+    vim.diagnostic.open_float()
+  end
+})
+
+vim.diagnostic.config({
+  virtual_text = {
+    current_line = true,
+  },
+  signs = {
+    active = true,
+    text = {
+      [vim.diagnostic.severity.ERROR] = " ",
+      [vim.diagnostic.severity.WARN]  = " ",
+      [vim.diagnostic.severity.HINT]  = " ",
+      [vim.diagnostic.severity.INFO]  = " ",
+    },
+  },
+  float = {
+    border = "single",
+    format = function(diagnostic)
+      return string.format(
+        "%s (%s) [%s]",
+        diagnostic.message,
+        diagnostic.source,
+        diagnostic.code or diagnostic.user_data.lsp.code
+      )
+    end,
+  },
+})
+
 -- Floating window utilities (for LSP)
 local orig_util_open_floating_preview = vim.lsp.util.open_floating_preview
 function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
@@ -67,7 +124,7 @@ require("lazy").setup({
         ensure_installed = "all",
         highlight = {
           enable = true,
-          additional_vim_regex_highlighting = { 'markdown' },
+          additional_vim_regex_highlighting = { "markdown" },
         },
         incremental_selection = {
           enable = true,
@@ -94,6 +151,18 @@ require("lazy").setup({
     config = function()
       require("luasnip.loaders.from_vscode").lazy_load()
     end,
+  },
+  {
+    "mason-org/mason.nvim",
+    opts = {
+      ui = {
+        icons = {
+          package_installed = "✓",
+          package_pending = "➜",
+          package_uninstalled = "✗"
+        }
+      }
+    },
   },
   {
     "hrsh7th/nvim-cmp",
@@ -187,128 +256,6 @@ require("lazy").setup({
         })
       })
     end,
-  },
-  {
-    "neovim/nvim-lspconfig",
-    lazy = false,
-    dependencies = {
-      "williamboman/mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
-    },
-    config = function()
-      local enabled_servers = {
-        "bashls",
-        "cssls",
-        "dockerls",
-        "gopls",
-        "html",
-        "intelephense",
-        "lua_ls",
-        "markdown_oxide",
-        "pylsp",
-        "tailwindcss",
-        "ts_ls",
-        "vimls",
-        "volar",
-      }
-
-      require("mason").setup()
-      require("mason-lspconfig").setup({
-        ensure_installed = enabled_servers,
-      })
-
-      vim.keymap.set("n", "<space>e", vim.diagnostic.open_float)
-      vim.keymap.set("n", "[d", vim.diagnostic.goto_prev)
-      vim.keymap.set("n", "]d", vim.diagnostic.goto_next)
-      vim.keymap.set("n", "<space>q", vim.diagnostic.setqflist)
-
-      vim.api.nvim_create_autocmd("LspAttach", {
-        group = vim.api.nvim_create_augroup("UserLspConfig", {}),
-        callback = function(ev)
-          -- Enable completion triggered by <c-x><c-o>
-          vim.bo[ev.buf].omnifunc = "v:lua.vim.lsp.omnifunc"
-
-          -- Buffer local mappings.
-          -- See `:help vim.lsp.*` for documentation on any of the below functions
-          local opts = { buffer = ev.buf }
-          -- vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
-          vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
-          vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
-          vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
-          vim.keymap.set("n", "<M-k>", vim.lsp.buf.signature_help, opts)
-          vim.keymap.set("n", "<space>D", vim.lsp.buf.type_definition, opts)
-          vim.keymap.set("n", "<space>rn", vim.lsp.buf.rename, opts)
-          vim.keymap.set("n", "<space>ca", vim.lsp.buf.code_action, opts)
-          vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
-          vim.keymap.set("n", "<space>df", function()
-            vim.lsp.buf.format { async = true }
-          end, opts)
-        end,
-      })
-
-      vim.api.nvim_create_autocmd("CursorHold", {
-        buffer = bufnr,
-        callback = function()
-          local opts = {
-            focusable = false,
-            close_events = { "BufLeave", "CursorMoved", "InsertEnter", "FocusLost" },
-            border = 'rounded',
-            source = 'always',
-            prefix = ' ',
-            scope = 'cursor',
-          }
-          vim.diagnostic.open_float(nil, opts)
-        end
-      })
-
-      local signs = { Error = " ", Warn = " ", Hint = " ", Info = " " }
-
-      for type, icon in pairs(signs) do
-        local hl = "DiagnosticSign" .. type
-        vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
-      end
-
-      local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-      -- loop all lsp servers and setup capabilities
-      -- allow for custom setup for each lsp server
-      for _, server in ipairs(enabled_servers) do
-        local config = require("lspconfig")[server]
-        if config then
-          config.setup {
-            capabilities = capabilities,
-          }
-        end
-      end
-
-      require("lspconfig").volar.setup {
-        capabilities = capabilities,
-        init_options = {
-          vue = {
-            hybridMode = false,
-          },
-        },
-        filetypes = {
-          "typescript",
-          "javascript",
-          "javascriptreact",
-          "typescriptreact",
-          "vue",
-          "json"
-        }
-      }
-
-      require("lspconfig").lua_ls.setup {
-        capabilities = capabilities,
-        settings = {
-          Lua = {
-            diagnostics = {
-              globals = { "vim" }
-            }
-          }
-        }
-      }
-    end
   },
   {
     "zbirenbaum/copilot.lua",
