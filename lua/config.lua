@@ -1,27 +1,32 @@
 vim.lsp.enable({
-  "bashls",
-  "cssls",
-  "dockerls",
-  "gopls",
-  "html",
-  "intelephense",
-  "lua_ls",
-  "markdown_oxide",
-  "pylsp",
-  "tailwindcss",
   "ts_ls",
-  "vimls",
   "vue_ls",
+  "lua_ls",
+  "tailwindcss",
+  "copilot_ls",
+  "go_ls",
+  "php_ls",
+  "bash_ls",
+  "css_ls",
+  "vim_ls",
+  "docker_ls",
+  "html_ls",
+  "python_ls",
+  "yaml_ls",
 })
 
-vim.api.nvim_create_autocmd("LspAttach", {
-  callback = function(ev)
-    local client = vim.lsp.get_client_by_id(ev.data.client_id)
-    if client:supports_method("textDocument/completion") then
-      vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
-    end
-  end,
-})
+-- vim.api.nvim_create_autocmd("LspAttach", {
+--   callback = function(ev)
+--     local client = vim.lsp.get_client_by_id(ev.data.client_id)
+--     if client:supports_method("textDocument/completion") then
+--       vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
+--     end
+--   end,
+-- })
+
+vim.keymap.set("i", "<c-space>", function()
+  vim.lsp.completion.get()
+end)
 
 vim.api.nvim_create_autocmd("CursorHold", {
   callback = function()
@@ -54,14 +59,6 @@ vim.diagnostic.config({
     end,
   },
 })
-
--- Floating window utilities (for LSP)
-local orig_util_open_floating_preview = vim.lsp.util.open_floating_preview
-function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
-  opts = opts or {}
-  opts.border = opts.border or "single"
-  return orig_util_open_floating_preview(contents, syntax, opts, ...)
-end
 
 -- Lazy plugin manager setup
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -176,7 +173,6 @@ require("lazy").setup({
     },
     config = function()
       local cmp = require("cmp")
-      local luasnip = require("luasnip")
 
       require("copilot_cmp").setup()
 
@@ -223,29 +219,12 @@ require("lazy").setup({
         },
         snippet = {
           expand = function(args)
-            luasnip.lsp_expand(args.body)
+            require("luasnip").lsp_expand(args.body)
+            vim.snippet.expand(args.body)
           end,
         },
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping(cmp.mapping.complete()),
-          ["<Tab>"] = cmp.mapping(function(fallback)
-            if cmp.visible() then
-              cmp.select_next_item()
-            elseif luasnip.locally_jumpable(1) then
-              luasnip.jump(1)
-            else
-              fallback()
-            end
-          end, { "i", "s" }),
-          ["<S-Tab>"] = cmp.mapping(function(fallback)
-            if cmp.visible() then
-              cmp.select_prev_item()
-            elseif luasnip.locally_jumpable(-1) then
-              luasnip.jump(-1)
-            else
-              fallback()
-            end
-          end, { "i", "s" }),
         }),
         sources = cmp.config.sources({
           { name = "copilot" },
@@ -259,12 +238,37 @@ require("lazy").setup({
   },
   {
     "zbirenbaum/copilot.lua",
-    cmd = "Copilot",
-    event = "InsertEnter",
+    lazy = false,
+    priority = 1000,
     config = function()
       require("copilot").setup({
         suggestion = { enabled = false },
         panel = { enabled = false },
+        server_opts_overrides = {
+          trace = "verbose",
+          cmd = {
+            "copilot-language-server",
+            "--stdio",
+          },
+          settings = {
+            advanced = {
+              listCount = 10,
+              inlineSuggestCount = 3,
+            },
+          },
+        },
+        filetypes = {
+          yaml = true,
+          markdown = true,
+          help = false,
+          gitcommit = true,
+          gitrebase = true,
+          hgcommit = false,
+          svn = false,
+          cvs = false,
+          ["."] = false,
+          ["*"] = true,
+        },
       })
     end,
   },

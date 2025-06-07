@@ -25,7 +25,6 @@ set relativenumber
 
 set signcolumn=yes
 
-set winborder=rounded
 set completeopt+=noselect
 
 " Netrw settings
