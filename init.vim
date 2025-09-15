@@ -25,7 +25,8 @@ set relativenumber
 
 set signcolumn=yes
 
-set completeopt+=noselect
+set completeopt+=menuone,noselect,popup
+set winborder=rounded
 
 " Netrw settings
 let g:netrw_banner = 0

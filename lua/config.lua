@@ -1,65 +1,3 @@
-vim.lsp.enable({
-  "ts_ls",
-  "vue_ls",
-  "lua_ls",
-  "tailwindcss",
-  "copilot_ls",
-  "go_ls",
-  "php_ls",
-  "bash_ls",
-  "css_ls",
-  "vim_ls",
-  "docker_ls",
-  "html_ls",
-  "python_ls",
-  "yaml_ls",
-})
-
--- vim.api.nvim_create_autocmd("LspAttach", {
---   callback = function(ev)
---     local client = vim.lsp.get_client_by_id(ev.data.client_id)
---     if client:supports_method("textDocument/completion") then
---       vim.lsp.completion.enable(true, client.id, ev.buf, { autotrigger = true })
---     end
---   end,
--- })
-
-vim.keymap.set("i", "<c-space>", function()
-  vim.lsp.completion.get()
-end)
-
-vim.api.nvim_create_autocmd("CursorHold", {
-  callback = function()
-    vim.diagnostic.open_float()
-  end
-})
-
-vim.diagnostic.config({
-  virtual_text = {
-    current_line = true,
-  },
-  signs = {
-    active = true,
-    text = {
-      [vim.diagnostic.severity.ERROR] = " ",
-      [vim.diagnostic.severity.WARN]  = " ",
-      [vim.diagnostic.severity.HINT]  = " ",
-      [vim.diagnostic.severity.INFO]  = " ",
-    },
-  },
-  float = {
-    border = "single",
-    format = function(diagnostic)
-      return string.format(
-        "%s (%s) [%s]",
-        diagnostic.message,
-        diagnostic.source,
-        diagnostic.code or diagnostic.user_data.lsp.code
-      )
-    end,
-  },
-})
-
 -- Lazy plugin manager setup
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 
@@ -115,8 +53,6 @@ require("lazy").setup({
   {
     "nvim-treesitter/nvim-treesitter",
     config = function()
-      vim.cmd([[TSUpdate]])
-
       require("nvim-treesitter.configs").setup({
         ensure_installed = "all",
         highlight = {
@@ -147,17 +83,73 @@ require("lazy").setup({
     },
     config = function()
       require("luasnip.loaders.from_vscode").lazy_load()
+
+      local ls = require("luasnip")
+
+      vim.keymap.set({ "i" }, "<C-K>", function() ls.expand() end, { silent = true })
+      vim.keymap.set({ "i", "s" }, "<C-L>", function() ls.jump(1) end, { silent = true })
+      vim.keymap.set({ "i", "s" }, "<C-J>", function() ls.jump(-1) end, { silent = true })
+
+      vim.keymap.set({ "i", "s" }, "<C-E>", function()
+        if ls.choice_active() then
+          ls.change_choice(1)
+        end
+      end, { silent = true })
     end,
   },
   {
-    "mason-org/mason.nvim",
-    opts = {
-      ui = {
-        icons = {
-          package_installed = "✓",
-          package_pending = "➜",
-          package_uninstalled = "✗"
-        }
+    "mason-org/mason-lspconfig.nvim",
+    opts = {},
+    dependencies = {
+      {
+        "mason-org/mason.nvim",
+        opts = {}
+      },
+      {
+        "neovim/nvim-lspconfig",
+        config = function ()
+            -- vim.lsp.enable({
+            -- "gopls"
+            -- "ts_ls",
+            -- "vue_ls",
+            -- "lua_ls",
+            -- "tailwindcss",
+            -- "copilot_ls",
+            -- "go_ls",
+            -- "php_ls",
+            -- "bash_ls",
+            -- "css_ls",
+            -- "vim_ls",
+            -- "docker_ls",
+            -- "html_ls",
+            -- "python_ls",
+            -- "yaml_ls",
+            -- })
+
+          vim.diagnostic.config({
+            signs = {
+              active = true,
+              text = {
+                [vim.diagnostic.severity.ERROR] = " ",
+                [vim.diagnostic.severity.WARN]  = " ",
+                [vim.diagnostic.severity.HINT]  = " ",
+                [vim.diagnostic.severity.INFO]  = " ",
+              },
+            },
+            float = {
+              border = "single",
+              format = function(diagnostic)
+                return string.format(
+                  "%s (%s) [%s]",
+                  diagnostic.message,
+                  diagnostic.source,
+                  diagnostic.code or diagnostic.user_data.lsp.code
+                )
+              end,
+            },
+          })
+
+        end
       }
     },
   },
@@ -169,12 +161,12 @@ require("lazy").setup({
       "hrsh7th/cmp-buffer",
       "hrsh7th/cmp-path",
       "saadparwaiz1/cmp_luasnip",
-      "zbirenbaum/copilot-cmp",
+      -- "zbirenbaum/copilot-cmp",
     },
     config = function()
       local cmp = require("cmp")
 
-      require("copilot_cmp").setup()
+      -- require("copilot_cmp").setup()
 
       local kind_icons = {
         Text = "",
@@ -224,10 +216,14 @@ require("lazy").setup({
           end,
         },
         mapping = cmp.mapping.preset.insert({
-          ["<C-Space>"] = cmp.mapping(cmp.mapping.complete()),
+          ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+          ["<C-f>"] = cmp.mapping.scroll_docs(4),
+          ["<C-x><C-o>"] = cmp.mapping.complete(),
+          ["<C-e>"] = cmp.mapping.abort(),
+          ["<C-y>"] = cmp.mapping.confirm({ select = true }),
         }),
         sources = cmp.config.sources({
-          { name = "copilot" },
+          -- { name = "copilot" },
           { name = "nvim_lsp" },
           { name = "luasnip" },
           { name = "buffer" },
@@ -236,40 +232,40 @@ require("lazy").setup({
       })
     end,
   },
-  {
-    "zbirenbaum/copilot.lua",
-    lazy = false,
-    priority = 1000,
-    config = function()
-      require("copilot").setup({
-        suggestion = { enabled = false },
-        panel = { enabled = false },
-        server_opts_overrides = {
-          trace = "verbose",
-          cmd = {
-            "copilot-language-server",
-            "--stdio",
-          },
-          settings = {
-            advanced = {
-              listCount = 10,
-              inlineSuggestCount = 3,
-            },
-          },
-        },
-        filetypes = {
-          yaml = true,
-          markdown = true,
-          help = false,
-          gitcommit = true,
-          gitrebase = true,
-          hgcommit = false,
-          svn = false,
-          cvs = false,
-          ["."] = false,
-          ["*"] = true,
-        },
-      })
-    end,
-  },
+  -- {
+  --   "zbirenbaum/copilot.lua",
+  --   lazy = false,
+  --   priority = 1000,
+  --   config = function()
+  --     require("copilot").setup({
+  --       suggestion = { enabled = false },
+  --       panel = { enabled = false },
+  --       server_opts_overrides = {
+  --         trace = "verbose",
+  --         cmd = {
+  --           "copilot-language-server",
+  --           "--stdio",
+  --         },
+  --         settings = {
+  --           advanced = {
+  --             listCount = 10,
+  --             inlineSuggestCount = 3,
+  --           },
+  --         },
+  --       },
+  --       filetypes = {
+  --         yaml = true,
+  --         markdown = true,
+  --         help = false,
+  --         gitcommit = true,
+  --         gitrebase = true,
+  --         hgcommit = false,
+  --         svn = false,
+  --         cvs = false,
+  --         ["."] = false,
+  --         ["*"] = true,
+  --       },
+  --     })
+  --   end,
+  -- },
 })
