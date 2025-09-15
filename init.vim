@@ -80,19 +80,37 @@ nnoremap <Leader>cq :cclose<CR>
 nnoremap <C-n> :cnext<CR>
 nnoremap <C-p> :cprevious<CR>
 
-vnoremap <Leader>x :<C-U>execute ":'<,'>w !bash"<CR>
+"vnoremap <Leader>x :<C-U>execute ":'<,'>w !bash"<CR>
+
+if has('win32') || has('win64')
+		let &shell = executable('pwsh') ? 'pwsh' : 'powershell'
+		let &shellcmdflag = '-NoLogo -NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -Command [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();$PSDefaultParameterValues[''Out-File:Encoding'']=''utf8'';$PSStyle.OutputRendering=''plaintext'';Remove-Alias -Force -ErrorAction SilentlyContinue tee;'
+		let &shellredir = '2>&1 | %%{ "$_" } | Out-File %s; exit $LastExitCode'
+		let &shellpipe  = '2>&1 | %%{ "$_" } | tee %s; exit $LastExitCode'
+		set shellquote= shellxquote=
+endif
+
+function! s:ShellStdinCmd() abort
+  if has('win32') || has('win64')
+    return shellescape(&shell) . ' -'
+  endif
+  return shellescape(&shell)
+endfunction
+
+" Visual: send selection to the shell
+xnoremap <silent> <Leader>x :<C-U>execute ":'<,'>w !" . shellescape(&shell)<CR>
 
 tnoremap <Esc><Esc> <C-\><C-n>
 
 " Path settings for finding files
 let s:default_path = escape(&path, '\ ') " store default value of 'path'
 
-autocmd VimEnter *
-      \ let s:tempPath=escape(escape(expand("%:p:h"), ' '), '\ ') |
-      \ exec "set path-=".s:tempPath |
-      \ exec "set path-=".s:default_path |
-      \ exec "set path^=".s:tempPath |
-      \ exec "set path^=".s:default_path
+" autocmd VimEnter *
+"       \ let s:tempPath=escape(escape(expand("%:p:h"), ' '), '\ ') |
+"       \ exec "set path-=".s:tempPath |
+"       \ exec "set path-=".s:default_path |
+"       \ exec "set path^=".s:tempPath |
+"       \ exec "set path^=".s:default_path
 
 " Use ripgrep if available
 if executable("rg")

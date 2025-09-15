@@ -38,6 +38,9 @@ require("lazy").setup({
     dependencies = {
       "nvim-tree/nvim-web-devicons",
     },
+    config = function()
+      require("fzf-lua").setup({"ivy"})
+    end,
     keys = {
       { "<Leader><Leader>f",        "<Cmd> FzfLua files<CR>",        desc = "Fuzzy find files" },
       { "<Leader><Leader>/",        "<Cmd> FzfLua grep<CR>",         desc = "Fuzzy find words" },
@@ -52,9 +55,11 @@ require("lazy").setup({
   },
   {
     "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
     config = function()
       require("nvim-treesitter.configs").setup({
         ensure_installed = "all",
+        ignore_install = { "ipkg", "norg" },
         highlight = {
           enable = true,
           additional_vim_regex_highlighting = { "markdown" },
@@ -161,12 +166,12 @@ require("lazy").setup({
       "hrsh7th/cmp-buffer",
       "hrsh7th/cmp-path",
       "saadparwaiz1/cmp_luasnip",
-      -- "zbirenbaum/copilot-cmp",
+      "zbirenbaum/copilot-cmp",
     },
     config = function()
       local cmp = require("cmp")
 
-      -- require("copilot_cmp").setup()
+      require("copilot_cmp").setup()
 
       local kind_icons = {
         Text = "",
@@ -232,40 +237,40 @@ require("lazy").setup({
       })
     end,
   },
-  -- {
-  --   "zbirenbaum/copilot.lua",
-  --   lazy = false,
-  --   priority = 1000,
-  --   config = function()
-  --     require("copilot").setup({
-  --       suggestion = { enabled = false },
-  --       panel = { enabled = false },
-  --       server_opts_overrides = {
-  --         trace = "verbose",
-  --         cmd = {
-  --           "copilot-language-server",
-  --           "--stdio",
-  --         },
-  --         settings = {
-  --           advanced = {
-  --             listCount = 10,
-  --             inlineSuggestCount = 3,
-  --           },
-  --         },
-  --       },
-  --       filetypes = {
-  --         yaml = true,
-  --         markdown = true,
-  --         help = false,
-  --         gitcommit = true,
-  --         gitrebase = true,
-  --         hgcommit = false,
-  --         svn = false,
-  --         cvs = false,
-  --         ["."] = false,
-  --         ["*"] = true,
-  --       },
-  --     })
-  --   end,
-  -- },
+  {
+    "zbirenbaum/copilot.lua",
+    lazy = false,
+    priority = 1000,
+    config = function()
+      require("copilot").setup({
+        suggestion = { enabled = false },
+        panel = { enabled = false },
+        -- server_opts_overrides = {
+        --   trace = "verbose",
+        --   cmd = {
+        --     "copilot-language-server",
+        --     "--stdio",
+        --   },
+        --   settings = {
+        --     advanced = {
+        --       listCount = 10,
+        --       inlineSuggestCount = 3,
+        --     },
+        --   },
+        -- },
+        filetypes = {
+          yaml = true,
+          markdown = true,
+          help = false,
+          gitcommit = true,
+          gitrebase = true,
+          hgcommit = false,
+          svn = false,
+          cvs = false,
+          ["."] = false,
+          ["*"] = true,
+        },
+      })
+    end,
+  },
 })
